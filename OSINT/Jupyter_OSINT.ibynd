@@ -1,0 +1,544 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "code_folding": []
+   },
+   "outputs": [],
+   "source": [
+    "# Author: Omar Bheda\n",
+    "# Date: 10/22/2020\n",
+    "# Version: 1.3\n",
+    "# Description: A Jupyter Notebook to automate the execution and parsing of key OSINT processes into an excel deliverable for further penetration testing activities."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# START TIME"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "from datetime import datetime\n",
+    "\n",
+    "now = datetime.now()\n",
+    "\n",
+    "start_time = now.strftime(\"%H:%M:%S\")\n",
+    "print(\"Start Time =\", start_time)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbpresent": {
+     "id": "45e1a318-9152-480d-9a7c-90764685fb8f"
+    }
+   },
+   "source": [
+    "# Introduction\n",
+    "Open Source Intelligence Gathering (OSINT) is the first step in a targeted attack such as in a penetration test or red team activity. While there are ways and means to do this covertly, intelligence gathering typically starts with scraping information from public sources, collectively known as open source intelligence or OSINT. \n",
+    "\n",
+    "Detailed in this Jupyter Notebook is the methodology utilized by the Dallas Lab to conduct OSINT for clients. This Jupyter Notebook will also serve to standardize OSINT techniques across lab resources and train resources on a common methodology."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Setup\n",
+    "Prior to running any cells assign a value to the variables and run the cell. This will change the targets for subdomain enumeration without needing to modify the script parameters. An example of an acceptable domain to replace the parameter with would be: \"protiviti.com\". Next set the ORG_NAME variable to the name of the target org."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "#Set DOMAIN & FOLDER_NAME Variable\n",
+    "DOMAIN = \"example.com\"\n",
+    "ORG_NAME = \"example\"\n",
+    "FOLDER_NAME = \"example\"\n",
+    "!mkdir $FOLDER_NAME"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"The Following variables have been set:\")\n",
+    "print(\"\")\n",
+    "print(\"DOMAIN NAME: \" + DOMAIN)\n",
+    "print(\"FOLDER NAME: \" + FOLDER_NAME)\n",
+    "print(\"\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Tool Initialization Script\n",
+    "\n",
+    "The Tool Initialization Script performs a \"locate\" on a script to be executed during the OSINT process. The path of the script from the \"locate\" function is added to a dictionary and referenced throughout the PROSINT notebook."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "code_folding": [
+     0
+    ],
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "#Tool Init Script\n",
+    "\n",
+    "#System Call Function\n",
+    "configDict = {} \n",
+    "def systemCall( cmd ):\n",
+    "    response = !{cmd}\n",
+    "    return response[0]\n",
+    "\n",
+    "#Update System Database\n",
+    "!updatedb\n",
+    "\n",
+    "#DNSProbe & Assetfinder copied to local path via setup script. Are not showed in tool initialization script.\n",
+    "\n",
+    "#subfinder\n",
+    "subPath = systemCall( \"locate subfinder/subfinder\" )\n",
+    "print( subPath )\n",
+    "subVersion = \"2.3.2\"\n",
+    "print( subVersion )\n",
+    "\n",
+    "configDict['subfinder'] = { 'path': subPath, 'version': subVersion }\n",
+    "print(\"\")\n",
+    "\n",
+    "#Shodan Scraper\n",
+    "shodanPath = systemCall( \"locate shodanScraper.py\" )\n",
+    "print( shodanPath )\n",
+    "shodanVersion = \"N/A\"\n",
+    "print( shodanVersion )\n",
+    "\n",
+    "configDict['shodan'] = { 'path': shodanPath, 'version': shodanVersion }\n",
+    "print(\"\")\n",
+    "\n",
+    "#GitDorker\n",
+    "GitDorkerPath = systemCall( \"locate GitDorker.py\" )\n",
+    "print( GitDorkerPath )\n",
+    "GitDorkerVersion = \"n/a\"\n",
+    "print( GitDorkerVersion )\n",
+    "\n",
+    "configDict['GitDorker'] = { 'path': GitDorkerPath, 'version': GitDorkerVersion }\n",
+    "print(\"\")\n",
+    "\n",
+    "#Infoga\n",
+    "infogaPath = systemCall( \"locate infoga.py\" )\n",
+    "print( infogaPath )\n",
+    "infogaVersion = \"N/A\"\n",
+    "print( infogaVersion )\n",
+    "\n",
+    "configDict['infoga'] = { 'path': infogaPath, 'version': infogaVersion }\n",
+    "print(\"\")\n",
+    "\n",
+    "#CloudEnum\n",
+    "cloudenumPath = systemCall( \"locate cloud_enum.py\" )\n",
+    "print( cloudenumPath )\n",
+    "cloudenumVersion = \"n/a\"\n",
+    "print( cloudenumVersion )\n",
+    "\n",
+    "configDict['cloudenum'] = { 'path': cloudenumPath, 'version': cloudenumVersion }\n",
+    "print(\"\")\n",
+    "\n",
+    "#Dehashed\n",
+    "dehashedPath = systemCall( \"locate dehashed.py\" )\n",
+    "print( dehashedPath )\n",
+    "dehashedVersion = \"n/a\"\n",
+    "print( dehashedVersion )\n",
+    "\n",
+    "configDict['dehashed'] = { 'path': dehashedPath, 'version': dehashedVersion }\n",
+    "print(\"\")\n",
+    "\n",
+    "print(\"TOOL DICTIONARY\")\n",
+    "print( repr( configDict ) )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbpresent": {
+     "id": "30aaf871-5628-48c6-b03a-8860b5172916"
+    }
+   },
+   "source": [
+    "# Subdomain Enumeration\n",
+    "Subdomain enumeration is the process of finding subdomains for one or more domain(s). Subdomain enumeration can reveal domains/sub-domains that are in scope of a security assessment but may not have been mentioned within the Rules of Engagement (ROE). This can come in handy when given a small scope as one can confirm with the client whether or not the newly discovered domains/sub-domains are in scope, thereby increaseing the chances of discovering vulnerabilities\n",
+    "\n",
+    "## subfinder\n",
+    "subfinder is a subdomain discovery tool that discovers valid subdomains for websites by using passive online sources.\n",
+    "It has a simple modular architecture and is optimized for speed. subfinder is built for doing one thing only - passive \n",
+    "subdomain enumeration, and it does that very well."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "nbpresent": {
+     "id": "8de85e67-bf5d-4042-aa6d-498b682ddeb9"
+    },
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "!{configDict['subfinder']['path']} -d $DOMAIN | tee $FOLDER_NAME/domains.csv\n",
+    "print(\"COMPLETE\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Assetfinder\n",
+    "\n",
+    "Assetfinder is a tool written by Tomnomnom designed to enumerate subdomains of websites using various sources. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "print(\"Scraping domains from assetfinder...\")\n",
+    "print(\"\")\n",
+    "!echo $DOMAIN | assetfinder --subs-only | tee -a $FOLDER_NAME/domains.csv\n",
+    "print(\"\")\n",
+    "print(\"Scraping complete!\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Formatting & Deduping Subdomains\n",
+    "The bash commands below remove the \"www.\" appended to domains and dedupes them in order to pass the domains into the Bulk IP Lookup script"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "!sed -i 's/www.//g' $FOLDER_NAME/domains.csv\n",
+    "!sed -i 's/<BR>/\\n/g' $FOLDER_NAME/domains.csv\n",
+    "!sort -u $FOLDER_NAME/domains.csv > $FOLDER_NAME/formatting.txt\n",
+    "!cat $FOLDER_NAME/formatting.txt > $FOLDER_NAME/domains.csv\n",
+    "!rm $FOLDER_NAME/formatting.txt\n",
+    "\n",
+    "print(\"Complete\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Bulk Reverse DNS\n",
+    "This tool by projectdiscovery will perform a reverse DNS lookup on a file containing subdomains (\"domains.txt\" outputted from subdomain enumeration)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "print(\"Starting DNS probe for valid domains...\")\n",
+    "print(\"\")\n",
+    "!dnsprobe -l $FOLDER_NAME/domains.csv | tr ' ' ',' | tee $FOLDER_NAME/reversedns.csv \n",
+    "!cat $FOLDER_NAME/reversedns.csv  | cut -d',' -f2 | sort -u > $FOLDER_NAME/IPs.csv \n",
+    "print(\"\")\n",
+    "print(\"DNS Probe finsished!\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "<!-- ## DNSTwist\n",
+    "DNSTwist allows one to find similar-looking domains that adversaries can use to attack the target domain. It can detect typosquatters, phishing attacks, fraud and corporate espionage and is useful as an additional source of targeted threat intelligence. -->"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbpresent": {
+     "id": "01271665-63b4-47d3-b53e-1997d91fe060"
+    },
+    "scrolled": true
+   },
+   "source": [
+    "# Email Gathering\n",
+    "Email Gathering is the process of finding emails to be leveraged during Active Testing. The most common example being conducting password guessing attempts on client systems. The objective of this process should be to obtain as many client emails as possible to improve the chances of password spraying. \n",
+    "\n",
+    "\n",
+    "## Infoga\n",
+    "Infoga is a tool gathering email account informations (ip,hostname,country,...) from different public sources (search engines, pgp key servers and shodan) and checks if emails were leaked using the haveibeenpwned.com API."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "nbpresent": {
+     "id": "8f5d36d3-4709-47dd-ab0d-2adcf3b13844"
+    },
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "!python {configDict['infoga']['path']} -d $DOMAIN -s all -r infoga.txt\n",
+    "!cat infoga.txt | grep + | cut -d' ' -f3 > $FOLDER_NAME/emails.csv \n",
+    "!sed 's/$/,infoga/' $FOLDER_NAME/emails.csv  > $FOLDER_NAME/formattedemails \n",
+    "!(echo \"EMAIL,SOURCE\" && cat $FOLDER_NAME/formattedemails ) > $FOLDER_NAME/emails.csv \n",
+    "!rm $FOLDER_NAME/formattedemails \n",
+    "!rm infoga.txt\n",
+    "print(\"COMPLETE\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Shodan"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "!python3 {configDict['shodan']['path']} $FOLDER_NAME/IPs.csv shodan\n",
+    "!mv --target-directory=$FOLDER_NAME shodan.csv"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Vendor Service Enumeration "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Cloudenum\n",
+    "\n",
+    "Multi-cloud OSINT tool. Enumerate public resources in AWS, Azure, and Google Cloud. Add in multiple \"-k\" arguments for multiple multiple keywords or use the \"-kf\" argument to specify a file with a list of keywords seperated by line.\n",
+    "\n",
+    "Example: -k somecompany -k somecompany.io -k somecompany.com\n",
+    "\n",
+    "Current setup takes in a keyfile, which in this case is the formatted subdomains we are feeding into cloudenum by specifying \"-kf\" rather than multiple keywords. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "print(\"Cloudenum in progress\")\n",
+    "!python3 {configDict['cloudenum']['path']} -k $ORG_NAME -t 50 --disable-gcp --disable-azure -l cloudenum.csv\n",
+    "!mv --target-directory=$FOLDER_NAME/ cloudenum.csv\n",
+    "print(\"\")\n",
+    "print(\"Cloudenum Complete\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Dehashed Breach List\n",
+    "Pull breach data for a client from the Dehashed credential database. Enter page number of the page below to pull."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Dehashed Set Page Number\n",
+    "Enter page number of the page below to pull (default setting is 1). Change number to pull additional pages, the script will tell you if you attempt to run a page and there are no results."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "PAGE_NUMBER = 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "print(\"Dehashed Pull Starting...\")\n",
+    "!python {configDict['dehashed']['path']} -c $DOMAIN -p $PAGE_NUMBER -o $ORG_NAME\n",
+    "print(\"\")\n",
+    "!mv --target-directory=$FOLDER_NAME/ *dehashed*\n",
+    "print(\"Pull Complete.\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## GitDorker\n",
+    "A tool perform a variety of github dorks and identify sensitive information exposure. Need to provide a GitHub Token.\n",
+    "\n",
+    "Full documentation available here: __[GitDorker Documentation](http://tinyurl.com/GitDorker)__"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "GH_FILE_NAME = FOLDER_NAME + \"_gh_dorks.csv\"\n",
+    "!python3 {configDict['GitDorker']['path']} -tf tokensfile.txt -q $DOMAIN -d dorks/alldorks.txt -o $FOLDER_NAME\n",
+    "!mv --target-directory=$FOLDER_NAME/ $GH_FILE_NAME"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {
+    "nbpresent": {
+     "id": "a32f0eda-e181-439b-a5e6-18375a13db58"
+    }
+   },
+   "source": [
+    "# OSINT Parsing Script & Excel Deliverable Serialization"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "nbpresent": {
+     "id": "11e92f0d-28b2-4265-bd96-9b4e705e6948"
+    },
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "#REQ: import requirements: pandas, openpyxl\n",
+    "import pandas as pd\n",
+    "import os\n",
+    "import csv\n",
+    "import glob\n",
+    "import xlsxwriter\n",
+    "import openpyxl\n",
+    "\n",
+    "\n",
+    "#path to parse to and read files from\n",
+    "path = \"/root/.jupyter/{}/\".format(FOLDER_NAME)\n",
+    "\n",
+    "#all files ending in .csv\n",
+    "all_files = glob.glob(os.path.join(path, \"*.csv\"))\n",
+    "\n",
+    "#initialize writer\n",
+    "writer = pd.ExcelWriter('/root/.jupyter/' + FOLDER_NAME + '/' + FOLDER_NAME + '_OSINT.xlsx', engine='openpyxl')\n",
+    "\n",
+    "#write all files into excel from dataframes and name worksheet by filename \n",
+    "print(\"The following files are being parsed to \" + path + \":\") \n",
+    "print(\"\")\n",
+    "for f in all_files:\n",
+    "    df = pd.read_csv(f)\n",
+    "    print(f)\n",
+    "    df.to_excel(writer, sheet_name=os.path.basename(f))\n",
+    "\n",
+    "writer.save()  \n",
+    "\n",
+    "print(\"\")\n",
+    "print(\"Parsing of \" + FOLDER_NAME + \"_OSINT.xlsx Complete\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# END TIME"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [],
+   "source": [
+    "now = datetime.now()\n",
+    "\n",
+    "end_time = now.strftime(\"%H:%M:%S\")\n",
+    "print(\"End Time =\", end_time)"
+   ]
+  }
+ ],
+ "metadata": {
+  "anaconda-cloud": {},
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.2"
+  },
+  "nbpresent": {
+   "slides": {},
+   "themes": {}
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 1
+}
