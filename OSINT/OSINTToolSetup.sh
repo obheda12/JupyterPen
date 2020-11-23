@@ -53,4 +53,5 @@ sudo pip3 install -r /root/Tools/cloud_enum/requirements.txt -q
 echo Installing GitDorker
 git clone https://github.com/obheda12/GitDorker /root/Tools/GitDorker -q
 sudo pip3 install -r /root/Tools/GitDorker/requirements.txt -q
+rm /root/Tools/GitDorker/*png
 }
